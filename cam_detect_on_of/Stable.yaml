@@ -1,0 +1,42 @@
+blueprint:
+  name: Управление детекцией на камере
+  description: |
+    Включени\отключение детекции на камере в зависимости от движения
+
+  domain: automation
+  source_url: https://github.com/Allkorolev/HA_blueprints/blob/main/cam_detect_on_of/Stable.yaml
+  input:
+    cam_mot_sensor:
+      name: Датчик движения
+      description: |
+        Выберите бинарный датчик движения, связанный с выбранной камерой.
+      selector:
+        entity:
+          integration: frigate
+          domain: binary_sensor
+          device_class: motion
+
+trigger:
+  platform: state
+  entity_id: !input cam_mot_sensor
+  to: "on"
+
+variables:
+  cam_mot_sensor: !input cam_mot_sensor
+  detect_switch_name: "{{ cam_mot_sensor | regex_replace('_motion', '') | regex_replace('binary_sensor', 'switch')}}_detect"
+
+mode: restart
+
+action:
+  - service: switch.turn_on
+    target:
+      entity_id: "{{ detect_switch_name }}"
+
+  - wait_for_trigger:
+      platform: state
+      entity_id: !input cam_mot_sensor
+      to: "off"
+
+  - service: switch.turn_off
+    target:
+      entity_id: "{{ detect_switch_name }}"
